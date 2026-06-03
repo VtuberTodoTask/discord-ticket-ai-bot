@@ -3,11 +3,23 @@ import { config } from "../config";
 import { logger } from "../utils/logger";
 import { getAllTickets, getOpenTickets, getTicketsByStatus, getTicket } from "../services/ticketTracker";
 import { loadAllModerationLogs } from "../services/moderation";
-import { renderDashboard, renderTicketDetail, renderModerationPage, renderLoginPage } from "./views";
 
 const app = express();
 
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+function corsMiddleware(_req: Request, res: Response, next: NextFunction): void {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+  if (_req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+}
+
+app.use(corsMiddleware);
 
 function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   const token = config.web.authToken;
@@ -16,40 +28,44 @@ function authMiddleware(req: Request, res: Response, next: NextFunction): void {
     return;
   }
 
-  const cookieToken = parseCookie(req.headers.cookie ?? "")["dashboard_token"];
-  const queryToken = req.query["token"] as string | undefined;
-
-  if (cookieToken === token || queryToken === token) {
-    if (queryToken === token && cookieToken !== token) {
-      res.cookie("dashboard_token", token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
-    }
+  const authHeader = req.headers["authorization"];
+  if (authHeader === `Bearer ${token}`) {
     next();
     return;
   }
 
-  if (req.method === "POST" && req.body?.token === token) {
-    res.cookie("dashboard_token", token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
-    res.redirect(req.originalUrl);
+  const queryToken = req.query["token"] as string | undefined;
+  if (queryToken === token) {
+    next();
     return;
   }
 
-  res.status(200).send(renderLoginPage());
+  res.status(401).json({ error: "Unauthorized" });
 }
 
-function parseCookie(cookieStr: string): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const pair of cookieStr.split(";")) {
-    const [key, val] = pair.trim().split("=");
-    if (key && val) result[key] = val;
+app.post("/api/auth", express.urlencoded({ extended: true }), (req: Request, res: Response) => {
+  const token = config.web.authToken;
+  if (!token) {
+    res.json({ success: true });
+    return;
   }
-  return result;
-}
+  if (req.body?.token === token) {
+    res.json({ success: true, token });
+    return;
+  }
+  res.status(401).json({ error: "Invalid token" });
+});
 
-app.use(authMiddleware);
+app.get("/api/auth/check", authMiddleware, (_req: Request, res: Response) => {
+  res.json({ authenticated: true });
+});
 
-app.get("/", (_req: Request, res: Response) => {
-  const statusFilter = (_req.query["status"] as string) ?? "open";
-  const categoryFilter = (_req.query["category"] as string) ?? "all";
+app.use("/api/tickets", authMiddleware);
+app.use("/api/moderation", authMiddleware);
+
+app.get("/api/tickets", (req: Request, res: Response) => {
+  const statusFilter = (req.query["status"] as string) ?? "open";
+  const categoryFilter = (req.query["category"] as string) ?? "all";
 
   let tickets;
   if (statusFilter === "all") {
@@ -65,36 +81,32 @@ app.get("/", (_req: Request, res: Response) => {
   }
 
   tickets.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-
-  res.send(renderDashboard(tickets, statusFilter, categoryFilter));
+  res.json(tickets);
 });
 
-app.get("/ticket/:channelId", (req: Request, res: Response) => {
+app.get("/api/tickets/:channelId", (req: Request, res: Response) => {
   const channelId = req.params["channelId"];
   const ticket = getTicket(typeof channelId === "string" ? channelId : "");
   if (!ticket) {
-    res.status(404).send("<h1>チケットが見つかりません</h1>");
+    res.status(404).json({ error: "Ticket not found" });
     return;
   }
-  res.send(renderTicketDetail(ticket));
+  res.json(ticket);
 });
 
-app.get("/moderation", (_req: Request, res: Response) => {
-  const logs = loadAllModerationLogs();
-  res.send(renderModerationPage(logs));
-});
-
-app.get("/api/tickets", (_req: Request, res: Response) => {
-  const statusFilter = (_req.query["status"] as string) ?? "open";
-  let tickets;
-  if (statusFilter === "all") {
-    tickets = getAllTickets();
-  } else if (statusFilter === "open") {
-    tickets = getOpenTickets();
-  } else {
-    tickets = getTicketsByStatus(statusFilter as "ai_handling" | "staff_handling" | "closed");
-  }
-  res.json(tickets);
+app.get("/api/stats", authMiddleware, (_req: Request, res: Response) => {
+  const all = getAllTickets();
+  res.json({
+    total: all.length,
+    ai_handling: all.filter((t) => t.status === "ai_handling").length,
+    staff_handling: all.filter((t) => t.status === "staff_handling").length,
+    closed: all.filter((t) => t.status === "closed").length,
+    by_category: {
+      "お気持ち": all.filter((t) => t.category === "お気持ち").length,
+      "提案": all.filter((t) => t.category === "提案").length,
+      "質問": all.filter((t) => t.category === "質問").length,
+    },
+  });
 });
 
 app.get("/api/moderation", (_req: Request, res: Response) => {
@@ -109,9 +121,9 @@ export function startWebServer(): void {
   }
 
   app.listen(config.web.port, () => {
-    logger.info(`Webダッシュボードを起動しました: http://localhost:${config.web.port}`);
+    logger.info(`APIサーバーを起動しました: http://localhost:${config.web.port}`);
     if (config.web.authToken) {
-      logger.info("Webダッシュボードはトークン認証で保護されています");
+      logger.info("APIはトークン認証で保護されています");
     } else {
       logger.warn("WEB_DASHBOARD_TOKEN が未設定です。本番環境では設定を推奨します");
     }
