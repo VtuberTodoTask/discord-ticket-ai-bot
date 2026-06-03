@@ -10,6 +10,10 @@ export interface AIResponse {
   category: string;
   summary: string;
   confidence: number;
+  moderation_flagged: boolean;
+  moderation_type: string;
+  moderation_severity: "low" | "medium" | "high" | "";
+  moderation_detail: string;
 }
 
 interface ConversationMessage {
@@ -53,9 +57,13 @@ export async function analyzeTicket(
     parsed.category = parsed.category || "other";
     parsed.summary = parsed.summary || "";
     parsed.confidence = parsed.confidence ?? 0.5;
+    parsed.moderation_flagged = parsed.moderation_flagged ?? false;
+    parsed.moderation_type = parsed.moderation_type || "";
+    parsed.moderation_severity = parsed.moderation_severity || "";
+    parsed.moderation_detail = parsed.moderation_detail || "";
 
     logger.info(
-      `AI分析完了: category=${parsed.category}, needs_staff=${parsed.needs_staff}, confidence=${parsed.confidence}`,
+      `AI分析完了: category=${parsed.category}, needs_staff=${parsed.needs_staff}, confidence=${parsed.confidence}, moderation_flagged=${parsed.moderation_flagged}`,
     );
 
     return parsed;
@@ -69,6 +77,10 @@ export async function analyzeTicket(
       category: "error",
       summary: "AI応答エラー — 手動対応が必要",
       confidence: 0,
+      moderation_flagged: false,
+      moderation_type: "",
+      moderation_severity: "",
+      moderation_detail: "",
     };
   }
 }
