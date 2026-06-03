@@ -1,0 +1,148 @@
+:root {
+  --bs-body-bg: #1a1a2e;
+  --bs-body-color: #e0e0e0;
+  --bs-card-bg: #16213e;
+  --bs-border-color: #0f3460;
+  --accent: #5865f2;
+  --accent-hover: #4752c4;
+}
+
+body {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.navbar {
+  background-color: #16213e !important;
+  border-bottom: 2px solid #0f3460;
+}
+
+.navbar-brand {
+  font-weight: bold;
+  color: var(--accent) !important;
+}
+
+.nav-link {
+  color: #a0a0b8 !important;
+  transition: all 0.2s;
+}
+
+.nav-link:hover, .nav-link.router-link-active {
+  color: #fff !important;
+  background: #0f3460;
+  border-radius: 6px;
+}
+
+.card {
+  background-color: var(--bs-card-bg);
+  border: 1px solid var(--bs-border-color);
+}
+
+.card-header {
+  background-color: rgba(15, 52, 96, 0.5);
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.table {
+  --bs-table-bg: var(--bs-card-bg);
+  --bs-table-color: var(--bs-body-color);
+  --bs-table-border-color: #1a1a2e;
+  --bs-table-hover-bg: #1e2a4a;
+  --bs-table-hover-color: #fff;
+}
+
+.table thead th {
+  background-color: #0f3460;
+  color: #a0a0b8;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-bottom: none;
+}
+
+.stat-card {
+  border-left-width: 4px !important;
+  border-left-style: solid !important;
+}
+
+.stat-card .stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.stat-card .stat-label {
+  font-size: 0.85rem;
+  color: #a0a0b8;
+}
+
+.btn-filter {
+  background-color: var(--bs-card-bg);
+  color: #a0a0b8;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  padding: 0.35rem 1rem;
+  transition: all 0.2s;
+}
+
+.btn-filter:hover, .btn-filter.active {
+  background-color: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.badge-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+}
+
+.ticket-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.ticket-link:hover {
+  text-decoration: underline;
+  color: var(--accent-hover);
+}
+
+.detail-card {
+  background-color: var(--bs-card-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+}
+
+.detail-card .label {
+  font-size: 0.8rem;
+  color: #a0a0b8;
+  margin-bottom: 0.25rem;
+}
+
+.form-control, .form-select {
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+  color: var(--bs-body-color);
+}
+
+.form-control:focus, .form-select:focus {
+  background-color: var(--bs-body-bg);
+  border-color: var(--accent);
+  color: var(--bs-body-color);
+  box-shadow: 0 0 0 0.2rem rgba(88, 101, 242, 0.25);
+}
+
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #a0a0b8;
+}

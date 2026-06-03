@@ -6,6 +6,7 @@ import { handleMessageCreate } from "./events/messageCreate";
 import { handleChannelCreate } from "./events/channelCreate";
 import { handleChannelDelete } from "./events/channelDelete";
 import { registerCommands, handleInteraction } from "./commands";
+import { startWebServer } from "./web/server";
 
 const client = new Client({
   intents: [
@@ -48,6 +49,8 @@ process.on("SIGTERM", () => {
   client.destroy();
   process.exit(0);
 });
+
+startWebServer(client);
 
 logger.info("Botを起動中...");
 client.login(config.discord.token).catch((error) => {

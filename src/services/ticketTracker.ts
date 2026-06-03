@@ -111,6 +111,21 @@ export function markClosed(channelId: string): void {
   logger.info(`チケットをクローズ: ${channelId}`);
 }
 
+export function updateTicketStatus(channelId: string, status: TicketStatus): TrackedTicket | null {
+  const ticket = tickets.get(channelId);
+  if (!ticket) return null;
+  const now = new Date().toISOString();
+  ticket.status = status;
+  ticket.updatedAt = now;
+  if (status === "staff_handling" && !ticket.escalatedAt) {
+    ticket.escalatedAt = now;
+  }
+  tickets.set(channelId, ticket);
+  saveTickets(tickets);
+  logger.info(`チケットステータスを変更: ${channelId} → ${status}`);
+  return ticket;
+}
+
 export function removeTicket(channelId: string): void {
   tickets.delete(channelId);
   saveTickets(tickets);
@@ -134,4 +149,8 @@ export function getTicketsByStatus(status: TicketStatus, guildId?: string): Trac
 
 export function getTicket(channelId: string): TrackedTicket | undefined {
   return tickets.get(channelId);
+}
+
+export function getAllTickets(): TrackedTicket[] {
+  return Array.from(tickets.values());
 }

@@ -5,3 +5,5 @@ dist/
 logs/
 data/
 .DS_Store
+.nuxt/
+.output/

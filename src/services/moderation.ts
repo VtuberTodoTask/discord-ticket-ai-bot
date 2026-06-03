@@ -41,6 +41,19 @@ function readExistingLogs(filePath: string): ModerationRecord[] {
   }
 }
 
+export function loadAllModerationLogs(): ModerationRecord[] {
+  const logDir = ensureLogDir();
+  if (!fs.existsSync(logDir)) return [];
+  const files = fs.readdirSync(logDir).filter((f) => f.startsWith("moderation_") && f.endsWith(".json"));
+  files.sort().reverse();
+  const allLogs: ModerationRecord[] = [];
+  for (const file of files) {
+    const logs = readExistingLogs(path.join(logDir, file));
+    allLogs.push(...logs);
+  }
+  return allLogs;
+}
+
 export function saveModerationLog(record: ModerationRecord): void {
   try {
     const filePath = getLogFilePath();
