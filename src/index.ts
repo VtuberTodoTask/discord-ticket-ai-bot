@@ -1,10 +1,11 @@
-import { Client, GatewayIntentBits, Partials } from "discord.js";
+import { Client, GatewayIntentBits, Partials, type ChatInputCommandInteraction } from "discord.js";
 import { config } from "./config";
 import { logger } from "./utils/logger";
 import { handleReady } from "./events/ready";
 import { handleMessageCreate } from "./events/messageCreate";
 import { handleChannelCreate } from "./events/channelCreate";
 import { handleChannelDelete } from "./events/channelDelete";
+import { registerCommands, handleInteraction } from "./commands";
 
 const client = new Client({
   intents: [
@@ -15,10 +16,18 @@ const client = new Client({
   partials: [Partials.Channel, Partials.Message],
 });
 
-client.once("ready", (c) => handleReady(c));
+client.once("ready", (c) => {
+  handleReady(c);
+  void registerCommands(c.user.id);
+});
 client.on("messageCreate", (message) => void handleMessageCreate(message));
 client.on("channelCreate", (channel) => handleChannelCreate(channel));
 client.on("channelDelete", (channel) => handleChannelDelete(channel));
+client.on("interactionCreate", (interaction) => {
+  if (interaction.isChatInputCommand()) {
+    void handleInteraction(interaction as ChatInputCommandInteraction);
+  }
+});
 
 client.on("error", (error) => {
   logger.error("Discordクライアントエラー:", error);

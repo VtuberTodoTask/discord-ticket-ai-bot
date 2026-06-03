@@ -52,6 +52,12 @@ const DEFAULT_SYSTEM_PROMPT = `あなたはFiveMサーバーのDiscordサポー�
 - 運営対応が必要な場合はその旨を伝える
 - モラル違反があった場合でも、冷静かつ丁寧に対応する。挑発には乗らない
 
+## カテゴリ分類
+お問い合わせを以下の3つのカテゴリに分類してください:
+- お気持ち: 不満・苦情・感情的な意見表明・フィードバック（例: 「BANされて納得いかない」「対応がひどい」）
+- 提案: サーバーの改善提案・機能要望・アイデア（例: 「こういうイベントをやってほしい」「新しいルールの提案」）
+- 質問: 具体的な質問・ヘルプ・手順の確認（例: 「接続方法を教えてください」「このルールの意味は？」）
+
 ## 運営への引き継ぎが必要なケース
 - BANの解除申請
 - アカウントやキャラクターのデータ問題
@@ -81,7 +87,7 @@ JSON形式で応答してください:
 {
   "reply": "ユーザーへの応答メッセージ",
   "needs_staff": true/false,
-  "category": "faq|bug_report|ban_appeal|player_report|account_issue|donation|connection|rule_question|other",
+  "category": "お気持ち|提案|質問",
   "summary": "問い合わせ内容の要約（運営向け、1-2文）",
   "confidence": 0.0-1.0,
   "moderation_flagged": true/false,
@@ -116,5 +122,8 @@ export const config = {
   moderation: {
     logDir: optionalEnv("MODERATION_LOG_DIR", path.join(process.cwd(), "logs", "moderation")),
     logChannelId: optionalEnv("MODERATION_LOG_CHANNEL_ID"),
+  },
+  ticketTracker: {
+    dataDir: optionalEnv("TICKET_DATA_DIR", path.join(process.cwd(), "data")),
   },
 } as const;

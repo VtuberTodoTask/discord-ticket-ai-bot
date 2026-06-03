@@ -8,6 +8,7 @@ import { config } from "../config";
 import { logger } from "../utils/logger";
 import { type AIResponse, analyzeTicket, generateFollowUp } from "./openai";
 import { type ModerationRecord, saveModerationLog } from "./moderation";
+import { upsertTicket, markEscalated, markClosed, type TicketCategory } from "./ticketTracker";
 
 /** チケットチャンネルごとの状態管理 */
 interface TicketState {
@@ -73,6 +74,7 @@ export function cleanupTicketState(channelId: string): void {
     clearTimeout(state.pendingTimer);
   }
   ticketStates.delete(channelId);
+  markClosed(channelId);
   logger.info(`チケット状態をクリーンアップしました: ${channelId}`);
 }
 
@@ -162,6 +164,18 @@ async function processBufferedMessages(
     state.conversationHistory.push({ role: "user", content: combinedMessage });
     state.conversationHistory.push({ role: "assistant", content: aiResponse.reply });
 
+    if (lastMsg) {
+      upsertTicket(channel.id, {
+        channelName: channel.name,
+        guildId: lastMsg.guildId,
+        userId: lastMsg.userId,
+        userTag: lastMsg.userTag,
+        category: (aiResponse.category as TicketCategory) || "",
+        summary: aiResponse.summary,
+        status: aiResponse.needs_staff ? "staff_handling" : "ai_handling",
+      });
+    }
+
     if (state.conversationHistory.length > config.ai.maxHistoryMessages * 2) {
       state.conversationHistory = state.conversationHistory.slice(-config.ai.maxHistoryMessages * 2);
     }
@@ -172,6 +186,7 @@ async function processBufferedMessages(
     if (aiResponse.needs_staff && !state.escalated) {
       await escalateToStaff(channel, aiResponse);
       state.escalated = true;
+      markEscalated(channel.id);
     }
 
     if (aiResponse.moderation_flagged && lastMsg) {
