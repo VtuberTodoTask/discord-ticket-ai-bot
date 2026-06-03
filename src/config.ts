@@ -1,0 +1,94 @@
+import * as dotenv from "dotenv";
+import * as fs from "fs";
+import * as path from "path";
+
+dotenv.config();
+
+function requireEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`環境変数 ${key} が設定されていません。.env.example を参考に .env を作成してください。`);
+  }
+  return value;
+}
+
+function optionalEnv(key: string, fallback: string = ""): string {
+  return process.env[key] || fallback;
+}
+
+function parseList(value: string): string[] {
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function loadSystemPrompt(): string {
+  const envPrompt = optionalEnv("AI_SYSTEM_PROMPT");
+  if (envPrompt) return envPrompt;
+
+  const filePath = path.join(process.cwd(), "config", "system_prompt.txt");
+  if (fs.existsSync(filePath)) {
+    return fs.readFileSync(filePath, "utf-8").trim();
+  }
+
+  return DEFAULT_SYSTEM_PROMPT;
+}
+
+const DEFAULT_SYSTEM_PROMPT = `あなたはFiveMサーバーのDiscordサポートBotです。
+チケットで寄せられたお問い合わせに対して、丁寧かつ的確に初期対応を行います。
+
+## 役割
+- ユーザーのお問い合わせ内容を理解し、適切な初期対応を行う
+- 簡単な質問（サーバールール、接続方法、FAQ等）にはAIとして回答する
+- 複雑な問題、アカウント操作、BAN対応、個別判断が必要な案件は運営に引き継ぐ
+
+## 応答ルール
+- 日本語で丁寧に応答する
+- 最初に問い合わせ内容を簡潔に要約する
+- 回答可能な場合は回答し、追加情報が必要な場合は質問する
+- 運営対応が必要な場合はその旨を伝える
+
+## 運営への引き継ぎが必要なケース
+- BANの解除申請
+- アカウントやキャラクターのデータ問題
+- サーバー内での他プレイヤーとのトラブル報告
+- 寄付・課金関連の問題
+- ルール違反の報告
+- バグ報告（ゲーム内の重大なバグ）
+- その他、AI単独では判断・対応できない案件
+
+## レスポンス形式
+JSON形式で応答してください:
+{
+  "reply": "ユーザーへの応答メッセージ",
+  "needs_staff": true/false,
+  "category": "faq|bug_report|ban_appeal|player_report|account_issue|donation|connection|rule_question|other",
+  "summary": "問い合わせ内容の要約（運営向け、1-2文）",
+  "confidence": 0.0-1.0
+}`;
+
+export const config = {
+  discord: {
+    token: requireEnv("DISCORD_TOKEN"),
+    guildId: optionalEnv("GUILD_ID"),
+  },
+  openai: {
+    apiKey: requireEnv("OPENAI_API_KEY"),
+    model: optionalEnv("OPENAI_MODEL", "gpt-4o-mini"),
+  },
+  ticket: {
+    categoryIds: parseList(optionalEnv("TICKET_CATEGORY_IDS")),
+    channelPrefixes: parseList(optionalEnv("TICKET_CHANNEL_PREFIXES", "ticket-")),
+    ticketToolBotId: optionalEnv("TICKET_TOOL_BOT_ID", "557628352828014614"),
+  },
+  staff: {
+    roleId: optionalEnv("STAFF_ROLE_ID"),
+    escalationLogChannelId: optionalEnv("ESCALATION_LOG_CHANNEL_ID"),
+  },
+  ai: {
+    systemPrompt: loadSystemPrompt(),
+    responseDelaySeconds: parseInt(optionalEnv("AI_RESPONSE_DELAY_SECONDS", "10"), 10),
+    maxHistoryMessages: parseInt(optionalEnv("AI_MAX_HISTORY_MESSAGES", "20"), 10),
+  },
+} as const;
