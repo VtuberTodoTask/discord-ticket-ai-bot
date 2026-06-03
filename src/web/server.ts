@@ -1,4 +1,5 @@
 import express, { type Request, type Response, type NextFunction } from "express";
+import { type Client, type TextChannel, ChannelType, EmbedBuilder } from "discord.js";
 import { config } from "../config";
 import { logger } from "../utils/logger";
 import { getAllTickets, getOpenTickets, getTicketsByStatus, getTicket, updateTicketStatus } from "../services/ticketTracker";
@@ -110,6 +111,9 @@ app.patch("/api/tickets/:channelId/status", authMiddleware, (req: Request, res: 
     res.status(404).json({ error: "Ticket not found" });
     return;
   }
+  if (status === "staff_handling" && discordClient?.isReady()) {
+    void notifyStaffInChannel(typeof channelId === "string" ? channelId : "");
+  }
   res.json(ticket);
 });
 
@@ -133,7 +137,37 @@ app.get("/api/moderation", (_req: Request, res: Response) => {
   res.json(logs);
 });
 
-export function startWebServer(): void {
+let discordClient: Client | null = null;
+
+async function notifyStaffInChannel(channelId: string): Promise<void> {
+  if (!discordClient?.isReady()) return;
+  try {
+    const channel = await discordClient.channels.fetch(channelId);
+    if (!channel || channel.type !== ChannelType.GuildText) {
+      logger.warn(`Discord通知: チャンネルが見つからないかテキストチャンネルではありません: ${channelId}`);
+      return;
+    }
+    const textChannel = channel as TextChannel;
+    const staffRoleId = config.staff.roleId;
+    const embed = new EmbedBuilder()
+      .setColor(0xff6b35)
+      .setTitle("🎫 ダッシュボードからの運営介入")
+      .setDescription("ダッシュボードから運営スタッフへの引き継ぎが要請されました。確認をお願いいたします。")
+      .setTimestamp()
+      .setFooter({ text: "Webダッシュボード" });
+    const mention = staffRoleId ? `<@&${staffRoleId}>` : "";
+    await textChannel.send({ content: mention || undefined, embeds: [embed] });
+    logger.info(`ダッシュボードから運営介入通知を送信: ${channelId}`);
+  } catch (error) {
+    logger.error(`Discord通知の送信に失敗: ${channelId}`, error);
+  }
+}
+
+export function startWebServer(client?: Client): void {
+  if (client) {
+    discordClient = client;
+  }
+
   if (!config.web.enabled) {
     logger.info("Webダッシュボードは無効です");
     return;

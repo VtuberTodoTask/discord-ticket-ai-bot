@@ -50,7 +50,7 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
-startWebServer();
+startWebServer(client);
 
 logger.info("Botを起動中...");
 client.login(config.discord.token).catch((error) => {
