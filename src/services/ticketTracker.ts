@@ -135,3 +135,7 @@ export function getTicketsByStatus(status: TicketStatus, guildId?: string): Trac
 export function getTicket(channelId: string): TrackedTicket | undefined {
   return tickets.get(channelId);
 }
+
+export function getAllTickets(): TrackedTicket[] {
+  return Array.from(tickets.values());
+}

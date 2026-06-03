@@ -126,4 +126,9 @@ export const config = {
   ticketTracker: {
     dataDir: optionalEnv("TICKET_DATA_DIR", path.join(process.cwd(), "data")),
   },
+  web: {
+    enabled: optionalEnv("WEB_DASHBOARD_ENABLED", "true") === "true",
+    port: parseInt(optionalEnv("WEB_DASHBOARD_PORT", "3000"), 10),
+    authToken: optionalEnv("WEB_DASHBOARD_TOKEN"),
+  },
 } as const;
