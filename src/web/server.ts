@@ -1,7 +1,7 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import { config } from "../config";
 import { logger } from "../utils/logger";
-import { getAllTickets, getOpenTickets, getTicketsByStatus, getTicket } from "../services/ticketTracker";
+import { getAllTickets, getOpenTickets, getTicketsByStatus, getTicket, updateTicketStatus } from "../services/ticketTracker";
 import { loadAllModerationLogs } from "../services/moderation";
 
 const app = express();
@@ -11,7 +11,7 @@ app.use(express.json());
 function corsMiddleware(_req: Request, res: Response, next: NextFunction): void {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
-  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.header("Access-Control-Allow-Methods", "GET, PATCH, POST, OPTIONS");
   if (_req.method === "OPTIONS") {
     res.sendStatus(204);
     return;
@@ -87,6 +87,25 @@ app.get("/api/tickets", (req: Request, res: Response) => {
 app.get("/api/tickets/:channelId", (req: Request, res: Response) => {
   const channelId = req.params["channelId"];
   const ticket = getTicket(typeof channelId === "string" ? channelId : "");
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+  res.json(ticket);
+});
+
+app.patch("/api/tickets/:channelId/status", authMiddleware, (req: Request, res: Response) => {
+  const channelId = req.params["channelId"];
+  const { status } = req.body as { status?: string };
+  const validStatuses = ["ai_handling", "staff_handling", "closed"];
+  if (!status || !validStatuses.includes(status)) {
+    res.status(400).json({ error: "Invalid status. Must be one of: ai_handling, staff_handling, closed" });
+    return;
+  }
+  const ticket = updateTicketStatus(
+    typeof channelId === "string" ? channelId : "",
+    status as "ai_handling" | "staff_handling" | "closed",
+  );
   if (!ticket) {
     res.status(404).json({ error: "Ticket not found" });
     return;

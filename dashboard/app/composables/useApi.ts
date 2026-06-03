@@ -118,6 +118,14 @@ export function useApi() {
     })
   }
 
+  async function updateTicketStatus(channelId: string, status: string): Promise<TrackedTicket> {
+    return await $fetch<TrackedTicket>(`${apiBase}/api/tickets/${channelId}/status`, {
+      method: 'PATCH',
+      headers: { ...headers(), 'Content-Type': 'application/json' },
+      body: { status },
+    })
+  }
+
   return {
     getToken,
     setToken,
@@ -128,5 +136,6 @@ export function useApi() {
     fetchTicket,
     fetchStats,
     fetchModeration,
+    updateTicketStatus,
   }
 }

@@ -83,6 +83,53 @@
         </div>
       </div>
 
+      <!-- Action Buttons -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <i class="bi bi-gear me-2"></i>アクション
+        </div>
+        <div class="card-body d-flex flex-wrap gap-2">
+          <button
+            v-if="ticket.status === 'ai_handling'"
+            class="btn btn-warning"
+            :disabled="updating"
+            @click="changeStatus('staff_handling')"
+          >
+            <i class="bi bi-person-badge me-1"></i>運営が介入する
+          </button>
+          <button
+            v-if="ticket.status === 'staff_handling'"
+            class="btn btn-primary"
+            :disabled="updating"
+            @click="changeStatus('ai_handling')"
+          >
+            <i class="bi bi-robot me-1"></i>AI対応に戻す
+          </button>
+          <button
+            v-if="ticket.status !== 'closed'"
+            class="btn btn-success"
+            :disabled="updating"
+            @click="changeStatus('closed')"
+          >
+            <i class="bi bi-check-circle me-1"></i>クローズする
+          </button>
+          <button
+            v-if="ticket.status === 'closed'"
+            class="btn btn-outline-warning"
+            :disabled="updating"
+            @click="changeStatus('staff_handling')"
+          >
+            <i class="bi bi-arrow-counterclockwise me-1"></i>再オープン（運営対応）
+          </button>
+          <span v-if="updating" class="text-secondary align-self-center ms-2">
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>更新中...
+          </span>
+          <span v-if="statusMessage" class="align-self-center ms-2" :class="statusMessageClass">
+            {{ statusMessage }}
+          </span>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <i class="bi bi-card-text me-2"></i>概要
@@ -123,10 +170,33 @@
 import type { TrackedTicket } from '~/composables/useApi'
 
 const route = useRoute()
-const { fetchTicket } = useApi()
+const { fetchTicket, updateTicketStatus } = useApi()
 
 const ticket = ref<TrackedTicket | null>(null)
 const loading = ref(true)
+const updating = ref(false)
+const statusMessage = ref('')
+const statusMessageClass = ref('')
+
+async function changeStatus(newStatus: string) {
+  if (!ticket.value) return
+  updating.value = true
+  statusMessage.value = ''
+  try {
+    const updated = await updateTicketStatus(ticket.value.channelId, newStatus)
+    ticket.value = updated
+    statusMessage.value = 'ステータスを更新しました'
+    statusMessageClass.value = 'text-success'
+    setTimeout(() => { statusMessage.value = '' }, 3000)
+  }
+  catch {
+    statusMessage.value = '更新に失敗しました'
+    statusMessageClass.value = 'text-danger'
+  }
+  finally {
+    updating.value = false
+  }
+}
 
 function statusColor(status: string): string {
   const colors: Record<string, string> = {
