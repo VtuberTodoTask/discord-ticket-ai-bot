@@ -115,6 +115,47 @@ docker build -t discord-ticket-ai-bot .
 docker run -d --env-file .env --name ticket-bot discord-ticket-ai-bot
 ```
 
+### daemontools で起動
+
+```bash
+# ビルド
+npm run build
+
+# サービスディレクトリをdaemontoolsの管理下にリンク
+ln -s /path/to/discord-ticket-ai-bot/service /service/discord-ticket-ai-bot
+
+# 起動確認
+svstat /service/discord-ticket-ai-bot
+
+# 手動で停止・起動
+svc -d /service/discord-ticket-ai-bot   # 停止
+svc -u /service/discord-ticket-ai-bot   # 起動
+svc -t /service/discord-ticket-ai-bot   # 再起動
+```
+
+ログは `/var/log/discord-ticket-ai-bot/` に `multilog` で自動ローテーションされます。
+
+### systemd で起動
+
+```bash
+# ビルド
+npm run build
+
+# サービスファイルをコピー
+sudo cp discord-ticket-ai-bot.service /etc/systemd/system/
+
+# サービスファイルの WorkingDirectory, User, EnvironmentFile を環境に合わせて編集
+sudo vim /etc/systemd/system/discord-ticket-ai-bot.service
+
+# 有効化・起動
+sudo systemctl daemon-reload
+sudo systemctl enable discord-ticket-ai-bot
+sudo systemctl start discord-ticket-ai-bot
+
+# ログ確認
+sudo journalctl -u discord-ticket-ai-bot -f
+```
+
 ## チケットチャンネルの検知ルール
 
 Bot は以下の条件でチケットチャンネルを判定します：

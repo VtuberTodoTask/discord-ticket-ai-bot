@@ -1,0 +1,18 @@
+#!/bin/sh
+exec 2>&1
+
+# アプリケーションのルートディレクトリ
+# 必要に応じてパスを変更してください
+APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+cd "$APP_DIR" || exit 1
+
+# .envファイルの読み込み
+if [ -f "$APP_DIR/.env" ]; then
+  set -a
+  . "$APP_DIR/.env"
+  set +a
+fi
+
+# ビルド済みのNode.jsアプリケーションを起動
+exec node dist/index.js
