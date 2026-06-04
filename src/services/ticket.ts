@@ -8,7 +8,7 @@ import { config } from "../config";
 import { logger } from "../utils/logger";
 import { type AIResponse, analyzeTicket, generateFollowUp } from "./openai";
 import { type ModerationRecord, saveModerationLog } from "./moderation";
-import { upsertTicket, markEscalated, markClosed, type TicketCategory } from "./ticketTracker";
+import { upsertTicket, markEscalated, markClosed, updateTicketStatus, type TicketCategory } from "./ticketTracker";
 
 /** チケットチャンネルごとの状態管理 */
 interface TicketState {
@@ -22,6 +22,10 @@ interface TicketState {
   pendingTimer: ReturnType<typeof setTimeout> | null;
   /** バッファリング中のメッセージ */
   pendingMessages: PendingMessage[];
+  /** 連続無関係メッセージカウント */
+  offTopicCount: number;
+  /** 強制クローズ済みか */
+  forceClosed: boolean;
 }
 
 interface PendingMessage {
@@ -62,6 +66,8 @@ export function getTicketState(channelId: string): TicketState {
       conversationHistory: [],
       pendingTimer: null,
       pendingMessages: [],
+      offTopicCount: 0,
+      forceClosed: false,
     };
     ticketStates.set(channelId, state);
   }
@@ -109,6 +115,8 @@ function buildEscalationEmbed(aiResponse: AIResponse, ticketChannelId: string): 
 export async function handleTicketMessage(message: Message): Promise<void> {
   const channel = message.channel as TextChannel;
   const state = getTicketState(channel.id);
+
+  if (state.forceClosed) return;
 
   if (state.pendingMessages.length >= 10) {
     logger.warn(`チケット ${channel.id} のバッファが上限に達しました`);
@@ -193,8 +201,15 @@ async function processBufferedMessages(
       await handleModerationFlag(channel, aiResponse, combinedMessage, lastMsg);
     }
 
+    if (aiResponse.off_topic) {
+      state.offTopicCount++;
+      await handleOffTopic(channel, state);
+    } else {
+      state.offTopicCount = 0;
+    }
+
     logger.info(
-      `チケット ${channel.name} に応答しました (category: ${aiResponse.category}, needs_staff: ${aiResponse.needs_staff}, moderation_flagged: ${aiResponse.moderation_flagged})`,
+      `チケット ${channel.name} に応答しました (category: ${aiResponse.category}, needs_staff: ${aiResponse.needs_staff}, moderation_flagged: ${aiResponse.moderation_flagged}, off_topic: ${aiResponse.off_topic}, offTopicCount: ${state.offTopicCount})`,
     );
   } catch (error) {
     logger.error(`チケット ${channel.name} の処理中にエラーが発生しました:`, error);
@@ -306,4 +321,48 @@ async function handleModerationFlag(
   logger.warn(
     `モラル違反検知: channel=${channel.name}, user=${lastMsg.userTag}, type=${aiResponse.moderation_type}, severity=${aiResponse.moderation_severity}`,
   );
+}
+
+async function handleOffTopic(
+  channel: TextChannel,
+  state: TicketState,
+): Promise<void> {
+  const { warnThreshold, closeThreshold } = config.offTopic;
+
+  if (state.offTopicCount >= closeThreshold) {
+    state.forceClosed = true;
+    updateTicketStatus(channel.id, "closed");
+
+    const embed = new EmbedBuilder()
+      .setColor(0xed4245)
+      .setTitle("🔒 チケットを強制クローズしました")
+      .setDescription(
+        "FiveMサーバーと無関係な会話が続いたため、このチケットは自動的にクローズされました。\n" +
+        "サーバーに関するお問い合わせがある場合は、新しいチケットを作成してください。",
+      )
+      .setTimestamp()
+      .setFooter({ text: "AI自動応答システム" });
+    await channel.send({ embeds: [embed] });
+
+    logger.warn(
+      `チケット ${channel.name} を無関係な会話のため強制クローズ (offTopicCount: ${state.offTopicCount})`,
+    );
+  } else if (state.offTopicCount >= warnThreshold) {
+    const remaining = closeThreshold - state.offTopicCount;
+    const embed = new EmbedBuilder()
+      .setColor(0xfee75c)
+      .setTitle("⚠️ ご注意")
+      .setDescription(
+        "こちらはFiveMサーバーに関するお問い合わせ用のチケットです。\n" +
+        "サーバーと無関係な会話が続く場合、チケットは自動的にクローズされます。\n" +
+        `（あと${remaining}回の無関係な発言でクローズされます）`,
+      )
+      .setTimestamp()
+      .setFooter({ text: "AI自動応答システム" });
+    await channel.send({ embeds: [embed] });
+
+    logger.info(
+      `チケット ${channel.name} に無関係な会話の警告を送信 (offTopicCount: ${state.offTopicCount}/${closeThreshold})`,
+    );
+  }
 }
