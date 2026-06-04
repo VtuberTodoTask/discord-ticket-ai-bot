@@ -14,6 +14,7 @@ export interface AIResponse {
   moderation_type: string;
   moderation_severity: "low" | "medium" | "high" | "";
   moderation_detail: string;
+  off_topic: boolean;
 }
 
 interface ConversationMessage {
@@ -61,9 +62,10 @@ export async function analyzeTicket(
     parsed.moderation_type = parsed.moderation_type || "";
     parsed.moderation_severity = parsed.moderation_severity || "";
     parsed.moderation_detail = parsed.moderation_detail || "";
+    parsed.off_topic = parsed.off_topic ?? false;
 
     logger.info(
-      `AI分析完了: category=${parsed.category}, needs_staff=${parsed.needs_staff}, confidence=${parsed.confidence}, moderation_flagged=${parsed.moderation_flagged}`,
+      `AI分析完了: category=${parsed.category}, needs_staff=${parsed.needs_staff}, confidence=${parsed.confidence}, moderation_flagged=${parsed.moderation_flagged}, off_topic=${parsed.off_topic}`,
     );
 
     return parsed;
@@ -81,6 +83,7 @@ export async function analyzeTicket(
       moderation_type: "",
       moderation_severity: "",
       moderation_detail: "",
+      off_topic: false,
     };
   }
 }
