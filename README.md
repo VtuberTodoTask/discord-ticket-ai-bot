@@ -84,16 +84,29 @@ cp .env.example .env
 
 `config/system_prompt.txt` を編集して、サーバー固有のルールや FAQ を追記できます。
 
-### 5. 起動
+### 5. ダッシュボードのセットアップ
 
 ```bash
-# 開発モード
-npm run dev
+cd dashboard
+npm install
+cd ..
+```
 
-# 本番モード
+### 6. 起動
+
+```bash
+# 開発モード（2つのターミナルで実行）
+npm run dev               # ターミナル1: Bot + APIサーバー (port 3000)
+npm run dev:dashboard     # ターミナル2: ダッシュボードUI (port 3001)
+# → http://localhost:3001 でダッシュボードにアクセス
+
+# 本番モード（ダッシュボードをビルドしてAPIサーバーから配信）
 npm run build
 npm start
+# → http://localhost:3000 でダッシュボードにアクセス
 ```
+
+> **注意**: 開発モードでは **先に `npm run dev`（Bot + API、port 3000）を起動してから** `npm run dev:dashboard`（port 3001）を起動してください。ダッシュボードのAPIリクエストは自動的にport 3000にプロキシされます。
 
 ### Docker で起動
 

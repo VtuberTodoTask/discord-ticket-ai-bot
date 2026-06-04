@@ -226,11 +226,17 @@ function categoryEmoji(category: string): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })
 }
 
 function elapsed(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
+  if (!iso) return '—'
+  const time = new Date(iso).getTime()
+  if (isNaN(time)) return '—'
+  const diff = Date.now() - time
   const mins = Math.floor(diff / 60000)
   if (mins < 60) return `${mins}分前`
   const hours = Math.floor(mins / 60)

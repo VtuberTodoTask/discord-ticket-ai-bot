@@ -1,3 +1,5 @@
+import * as fs from "fs";
+import * as path from "path";
 import express, { type Request, type Response, type NextFunction } from "express";
 import { type Client, type TextChannel, ChannelType, EmbedBuilder } from "discord.js";
 import { config } from "../config";
@@ -173,8 +175,22 @@ export function startWebServer(client?: Client): void {
     return;
   }
 
+  const dashboardDir = path.join(process.cwd(), "dashboard", ".output", "public");
+  if (fs.existsSync(dashboardDir)) {
+    app.use(express.static(dashboardDir));
+    app.get(/^(?!\/api\/).*/, (_req: Request, res: Response) => {
+      res.sendFile(path.join(dashboardDir, "index.html"));
+    });
+    logger.info(`ダッシュボードUIを配信: ${dashboardDir}`);
+  } else {
+    logger.info("ダッシュボードUIがビルドされていません。 cd dashboard && npm run generate でビルドしてください");
+  }
+
   app.listen(config.web.port, () => {
     logger.info(`APIサーバーを起動しました: http://localhost:${config.web.port}`);
+    if (fs.existsSync(dashboardDir)) {
+      logger.info(`ダッシュボード: http://localhost:${config.web.port}/login`);
+    }
     if (config.web.authToken) {
       logger.info("APIはトークン認証で保護されています");
     } else {

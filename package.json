@@ -4,9 +4,12 @@
   "description": "Discord Ticket Tool × OpenAI 自動初期対応Bot",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cd dashboard && npm run generate",
+    "build:bot": "tsc",
+    "build:dashboard": "cd dashboard && npm run generate",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
+    "dev:dashboard": "cd dashboard && npm run dev",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit"
   },

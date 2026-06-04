@@ -91,7 +91,10 @@ function formatDate(iso: string): string {
 }
 
 function elapsed(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
+  if (!iso) return '—'
+  const time = new Date(iso).getTime()
+  if (isNaN(time)) return '—'
+  const diff = Date.now() - time
   const mins = Math.floor(diff / 60000)
   if (mins < 60) return `${mins}分前`
   const hours = Math.floor(mins / 60)

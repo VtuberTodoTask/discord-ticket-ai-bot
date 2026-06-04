@@ -29,13 +29,36 @@ function getDataFilePath(): string {
   return path.join(dir, "tickets.json");
 }
 
+function isValidTicket(t: TrackedTicket): boolean {
+  return Boolean(
+    t.channelId &&
+    t.channelName &&
+    t.userId &&
+    t.createdAt &&
+    !isNaN(new Date(t.createdAt).getTime()),
+  );
+}
+
 function loadTickets(): Map<string, TrackedTicket> {
   const filePath = getDataFilePath();
   if (!fs.existsSync(filePath)) return new Map();
   try {
     const content = fs.readFileSync(filePath, "utf-8");
     const arr: TrackedTicket[] = JSON.parse(content);
-    return new Map(arr.map((t) => [t.channelId, t]));
+    const valid = arr.filter((t) => {
+      if (!isValidTicket(t)) {
+        logger.warn(`無効なチケットデータをスキップ: channelId=${t.channelId || "(empty)"}`);
+        return false;
+      }
+      return true;
+    });
+    if (valid.length < arr.length) {
+      logger.info(`${arr.length - valid.length}件の無効なチケットを除外しました`);
+      const map = new Map(valid.map((t) => [t.channelId, t]));
+      saveTickets(map);
+      return map;
+    }
+    return new Map(valid.map((t) => [t.channelId, t]));
   } catch {
     logger.warn("チケットデータの読み込みに失敗しました");
     return new Map();
@@ -53,7 +76,11 @@ const tickets = loadTickets();
 export function upsertTicket(
   channelId: string,
   update: Partial<TrackedTicket> & Pick<TrackedTicket, "channelName" | "guildId" | "userId" | "userTag">,
-): TrackedTicket {
+): TrackedTicket | null {
+  if (!channelId || !update.channelName || !update.userId) {
+    logger.warn(`チケットの登録をスキップ: 必須フィールドが不足 (channelId=${channelId}, channelName=${update.channelName}, userId=${update.userId})`);
+    return null;
+  }
   const now = new Date().toISOString();
   const existing = tickets.get(channelId);
 
