@@ -26,6 +26,10 @@ export default defineNuxtConfig({
 
   ssr: false,
 
+  devServer: {
+    port: 3001,
+  },
+
   nitro: {
     devProxy: {
       '/api': {

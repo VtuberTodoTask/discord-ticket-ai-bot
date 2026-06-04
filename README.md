@@ -95,19 +95,18 @@ cd ..
 ### 6. 起動
 
 ```bash
-# 開発モード（Bot + APIサーバーのみ）
-npm run dev
-
-# 開発モード（ダッシュボードUIの開発サーバー、別ターミナルで）
-npm run dev:dashboard
+# 開発モード（2つのターミナルで実行）
+npm run dev               # ターミナル1: Bot + APIサーバー (port 3000)
+npm run dev:dashboard     # ターミナル2: ダッシュボードUI (port 3001)
+# → http://localhost:3001 でダッシュボードにアクセス
 
 # 本番モード（ダッシュボードをビルドしてAPIサーバーから配信）
 npm run build
 npm start
-# → http://localhost:3000/login でダッシュボードにアクセス
+# → http://localhost:3000 でダッシュボードにアクセス
 ```
 
-> **注意**: `npm run dev` は Bot + API サーバーのみ起動します。ダッシュボード UI を利用するには、本番モードで `npm run build` を実行してからAPIサーバーを起動するか、開発モードでは別ターミナルで `npm run dev:dashboard` を実行してください。
+> **注意**: 開発モードでは **先に `npm run dev`（Bot + API、port 3000）を起動してから** `npm run dev:dashboard`（port 3001）を起動してください。ダッシュボードのAPIリクエストは自動的にport 3000にプロキシされます。
 
 ### Docker で起動
 
