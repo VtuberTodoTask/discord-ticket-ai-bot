@@ -11,7 +11,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || '',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE ?? 'http://localhost:3000',
     },
   },
 
@@ -30,12 +30,4 @@ export default defineNuxtConfig({
     port: 3001,
   },
 
-  nitro: {
-    devProxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-    },
-  },
 })
