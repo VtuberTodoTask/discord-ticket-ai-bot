@@ -1,0 +1,23 @@
+[Unit]
+Description=Discord Ticket AI Bot
+After=network.target
+
+[Service]
+Type=simple
+# アプリケーションのディレクトリとユーザーを環境に合わせて変更してください
+WorkingDirectory=/opt/discord-ticket-ai-bot
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=10
+# 実行ユーザー（rootでの実行は非推奨）
+User=discord-bot
+Group=discord-bot
+# .envファイルから環境変数を読み込み
+EnvironmentFile=/opt/discord-ticket-ai-bot/.env
+# ログ出力
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=discord-ticket-ai-bot
+
+[Install]
+WantedBy=multi-user.target
